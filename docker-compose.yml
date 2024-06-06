@@ -1,0 +1,53 @@
+version: '3.4'
+
+services:
+  kubefast:
+    image: kubefast
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: uvicorn app:app --reload --workers 1 --host 0.0.0.0 --port 8000
+    environment:
+      - LOKI_ENDPOINT=http://loki:3100/loki/api/v1/push
+    ports:
+      - 8000:8000
+    networks:
+      - kubefast-net
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ${PWD}/config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - kubefast-net
+
+  loki:
+    image: grafana/loki:2.9.2
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - kubefast-net
+
+  grafana:
+    image: grafana/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - kubefast-net
+
+volumes:
+  grafana_data:
+
+networks:
+  kubefast-net:
