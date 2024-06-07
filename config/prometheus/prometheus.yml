@@ -37,4 +37,4 @@ scrape_configs:
     scrape_interval: 10s
     metrics_path: /metrics
     static_configs:
-      - targets: ['loki:8000']
+      - targets: ['loki:3100']

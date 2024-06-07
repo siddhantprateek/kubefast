@@ -15,10 +15,11 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
 
+# Loki Integration
 loki_logs_handler = LokiQueueHandler(
     Queue(-1),
     url=getenv("LOKI_ENDPOINT"),
-    tags={"application": "fastapi"},
+    tags={"application": "kubefast"},
     version="1",
 )
 
@@ -26,7 +27,7 @@ uvicorn_access_logger = logging.getLogger("uvicorn.access")
 uvicorn_access_logger.addHandler(loki_logs_handler)
 
 
-# Instruments the app with default metrics and exposes the metrics
+# Instruments the app with default metrics and exposes the metrics (Prometheus)
 Instrumentator().instrument(app).expose(app)
 
 class Post(BaseModel):
