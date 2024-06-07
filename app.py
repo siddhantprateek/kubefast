@@ -5,6 +5,8 @@ from fastapi import FastAPI, HTTPException, status, Query, Response
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
+from prometheus_client import Counter, Histogram
+
 
 # Loki 
 import logging
@@ -55,17 +57,26 @@ def find_index_post(id):
 @app.get("/")
 def read_root():
     return {"status": "healthy"}
+
+# Implementation of Prometheus Histogram and Counter
+request_counter = Counter('fastapi_request_count', 'Total number of requests')
+request_latency = Histogram('fastapi_request_latency_seconds', 'Request latency in seconds')
   
 @app.get("/posts")
 def get_all_posts():
-    return {"data": my_list}
-
+    request_counter.inc()  # Increment request counter
+    with request_latency.time():  # Measure latency
+        return {"data": my_list}
+    
+    
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post):
-    post_dict = post.dict()
-    post_dict["id"] = randrange(0, 1000000)
-    my_list.append(post_dict)
-    return {"data": post_dict}
+    request_counter.inc()  # Increment request counter
+    post_dict = post.model_dump()
+    with request_latency.time():  # Measure latency
+        post_dict["id"] = randrange(0, 1000000)
+        my_list.append(post_dict)
+        return {"data": post_dict}
   
 @app.get("/posts/latest")
 def get_latest_post():
@@ -99,5 +110,17 @@ def update_post(id: int, post: Post):
     post_dict['id'] = id
     my_list[indx] = post_dict
     return {"message": f"Post with ID {id} successfully updated"}
+
+
+# Example for creating custom Metrics
+
+# Custom Prometheus metric
+fast_api_workload_count = Counter('fast_api_workload_count', 'Number of times workload endpoint is called')
+
+@app.get("/workload")
+def workload():
+    fast_api_workload_count.inc()  # Increment the custom Prometheus counter
+    return {"message": "This is a workload endpoint"}
+
 
 
